@@ -14,7 +14,7 @@ export default function Landing() {
 
       <div className="max-w-xl w-full text-center mt-16">
         <h1 className="font-serif text-7xl md:text-8xl font-black tracking-tighter mb-3 text-bone-100 text-glow">
-          기<span className="text-blood-500">·</span>리<span className="text-blood-500">·</span>고
+          지<span className="text-blood-500">·</span>리<span className="text-blood-500">·</span>고
         </h1>
         <p className="font-mono text-[11px] tracking-[0.6em] text-bone-300 mb-8 uppercase">
           진실 분석 프로토콜 v2

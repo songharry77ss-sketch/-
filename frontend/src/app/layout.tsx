@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "기리고 — 진실 분석 프로토콜",
+  title: "지리고 — 진실 분석 프로토콜",
   description: "AI 거짓말 탐지 프로파일러. 학술 기법 기반 RAG로 분석합니다.",
 };
 
