@@ -126,7 +126,7 @@ export default function ReportPage() {
             진실 분석 보고서
           </h1>
           <p className="font-mono text-[11px] text-bone-500 mt-2">
-            {new Date().toLocaleString("ko-KR")} · 검토 프로파일러 김재현
+            {new Date().toLocaleString("ko-KR")} · 검토 프로파일러 표창원
           </p>
         </header>
 
@@ -289,7 +289,7 @@ function VerdictHero({
           "{oneLine}"
         </p>
         <p className="font-mono text-[9px] text-bone-500 mt-2 tracking-widest">
-          — 김재현 프로파일러 종합
+          — 표창원 프로파일러 종합
         </p>
       </div>
     </section>

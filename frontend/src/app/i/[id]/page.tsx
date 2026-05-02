@@ -357,7 +357,7 @@ function Bubble({
     return (
       <div className="space-y-1">
         <div className="font-mono text-[10px] text-blood-300 tracking-[0.3em] uppercase">
-          ▌ 프로파일러 — 김재현
+          ▌ 프로파일러 — 표창원
         </div>
         <div
           className={`border-l-2 border-blood-500 pl-4 py-2 text-bone-100 leading-loose font-serif text-[15px] ${
