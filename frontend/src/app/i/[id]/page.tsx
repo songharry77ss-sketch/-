@@ -75,22 +75,37 @@ export default function InterrogationPage() {
       setMessages((m) => [...m, { role: "profiler", content: acc }]);
       setStreamBuf("");
       if (voiceOn && acc) speakKorean(acc, { rate: 0.85, pitch: 0.7 });
-      // After profiler answers, check if we should finalize
-      try {
-        const v = await api.verdictCheck(sessionId);
-        setVerdictHint({ confidence: v.confidence, turns: v.profiler_turns, canFinalize: v.should_finalize });
-        if (v.should_finalize) {
-          // Auto-finalize after a 3-second pause for dramatic effect + last sentence to register
-          setTimeout(() => finalizeSession(), 3500);
-        }
-      } catch (e) {
-        console.error(e);
-      }
     } catch (e) {
       setMessages((m) => [...m, { role: "profiler", content: `[연결 오류 — ${e instanceof Error ? e.message : "다시 시도"}]` }]);
     } finally {
       setStreaming(false);
       setTimeout(() => inputRef.current?.focus(), 200);
+    }
+
+    // OPTIMIZATION: verdict-check is expensive (~3-5s Claude call). Skip it
+    // entirely until turn 4 (backend won't auto-finalize before that anyway).
+    // After turn 4, run it in the BACKGROUND — don't block UI.
+    const profilerTurnsAfter = messages.filter((m) => m.role === "profiler").length + 1;
+    if (profilerTurnsAfter >= 4) {
+      api.verdictCheck(sessionId)
+        .then((v) => {
+          setVerdictHint({
+            confidence: v.confidence,
+            turns: v.profiler_turns,
+            canFinalize: v.should_finalize,
+          });
+          if (v.should_finalize) {
+            setTimeout(() => finalizeSession(), 3500);
+          }
+        })
+        .catch(console.error);
+    } else {
+      // Cheap local update so the progress bar still moves
+      setVerdictHint({
+        confidence: Math.min(20 * profilerTurnsAfter, 60),
+        turns: profilerTurnsAfter,
+        canFinalize: false,
+      });
     }
   }
 

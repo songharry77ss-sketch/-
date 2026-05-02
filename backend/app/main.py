@@ -22,8 +22,17 @@ app = FastAPI(
 def _startup():
     # Will raise on missing env vars
     settings()
-    # Note: embedding model loads lazily on first query (avoids blocking startup
-    # past Railway's healthcheck window).
+    # Eager-load embedding model — pre-cached in Docker image so it's just
+    # a disk read into RAM (~5-10 sec). Healthcheck timeout is 180s so plenty
+    # of headroom; in exchange the first user query is fast (no 30s wait).
+    import logging
+    log = logging.getLogger("girigo.startup")
+    log.info("Eager-loading embedding model...")
+    import time
+    t0 = time.time()
+    from app.services.embed import warmup
+    warmup()
+    log.info(f"Model loaded in {time.time() - t0:.1f}s — ready for queries")
 
 
 # CORS

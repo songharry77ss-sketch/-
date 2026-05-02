@@ -17,7 +17,8 @@ from app.prompts.profiler import (
 from app.services.rag import format_context, retrieve
 
 log = logging.getLogger("girigo.agent")
-MODEL = "claude-opus-4-7"
+MODEL = "claude-opus-4-7"          # Main interrogation (quality matters)
+MODEL_FAST = "claude-haiku-4-5"    # Verdict-check (just classification, 5x faster)
 
 
 def claude() -> anthropic.AsyncAnthropic:
@@ -102,7 +103,7 @@ async def evaluate_verdict(
     )
 
     res = await claude().messages.create(
-        model=MODEL,
+        model=MODEL_FAST,  # Haiku — fast classification, no Opus needed
         max_tokens=400,
         system=sys,
         tools=[VERDICT_TOOL_SCHEMA],

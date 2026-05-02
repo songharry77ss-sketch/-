@@ -98,9 +98,14 @@ async def send_message(session_id: str, req: SendMessageRequest):
         _save_message(session_id, "suspect", req.content.strip())
         history.append(Message(role="suspect", content=req.content.strip()))
 
-    # RAG: retrieve top-k chunks based on situation + recent dialogue
-    query = build_query(history, sess["situation"])
-    rag_chunks = retrieve(query, k=settings().top_k_chunks)
+    # OPTIMIZATION: Skip RAG entirely on first turn (no dialogue context yet,
+    # situation alone gives the profiler enough to ask an opening question).
+    # Saves ~200-500ms on the slowest moment of the session (cold start).
+    if is_first:
+        rag_chunks = []
+    else:
+        query = build_query(history, sess["situation"])
+        rag_chunks = retrieve(query, k=settings().top_k_chunks)
     rag_ids = [c.id for c in rag_chunks]
 
     # Stream profiler's next question to client
