@@ -1,7 +1,4 @@
-"""Upload embedded chunks JSON → Supabase (papers + chunks tables).
-
-Run after `run.py` completes and after Supabase schema is applied.
-"""
+"""Upload embedded chunks JSON -> Supabase (papers + chunks tables)."""
 from __future__ import annotations
 import argparse
 import json
@@ -22,13 +19,22 @@ logging.basicConfig(
 )
 log = logging.getLogger("girigo.upload")
 
+# Postgres text columns reject the NUL byte.
+NUL = chr(0)
+
+
+def clean_text(s: str | None) -> str | None:
+    if not s:
+        return s
+    # Strip NUL bytes; collapse other invalid surrogates.
+    return s.replace(NUL, "")
+
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "--input",
         default=str(ROOT / "ingest" / "output" / "chunks_embedded.json"),
-        help="Path to embedded chunks JSON",
     )
     ap.add_argument("--batch", type=int, default=50)
     args = ap.parse_args()
@@ -42,23 +48,23 @@ def main():
 
     payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
     chunks = payload["chunks"]
-    log.info(f"loaded {len(chunks)} chunks (dim={payload['dim']}, model={payload['model']})")
+    log.info(f"loaded {len(chunks)} chunks (dim={payload['dim']}, model={payload.get('model')})")
 
-    # ── 1. Upsert papers (one row per unique paper_id) ──
+    # ── 1. Upsert papers ────────────────────────────────────────────
     papers_seen: dict[str, dict] = {}
     for c in chunks:
         pid = c["paper_id"]
         if pid in papers_seen:
             continue
         papers_seen[pid] = {
-            "id": pid,
-            "title": c.get("title") or "",
+            "id": clean_text(pid),
+            "title": clean_text(c.get("title")) or "",
             "abstract": None,
-            "doi": c.get("doi"),
+            "doi": clean_text(c.get("doi")),
             "year": c.get("year"),
-            "authors": c.get("authors") or [],
+            "authors": [clean_text(a) for a in (c.get("authors") or [])],
             "source": pid.split(":", 1)[0] if ":" in pid else "unknown",
-            "external_url": c.get("external_url") or "",
+            "external_url": clean_text(c.get("external_url")) or "",
             "text_source": c.get("text_source"),
         }
     log.info(f"upserting {len(papers_seen)} unique papers...")
@@ -66,27 +72,36 @@ def main():
     for i in tqdm(range(0, len(paper_rows), args.batch), desc="papers"):
         sb.table("papers").upsert(paper_rows[i : i + args.batch]).execute()
 
-    # ── 2. Insert chunks (skip duplicates via unique paper_id+chunk_index) ──
+    # ── 2. Insert chunks ────────────────────────────────────────────
     log.info(f"inserting {len(chunks)} chunks...")
-    rows = [
-        {
-            "paper_id": c["paper_id"],
+    rows = []
+    skipped = 0
+    for c in chunks:
+        text = clean_text(c["chunk_text"])
+        if not text or len(text.strip()) < 10:
+            skipped += 1
+            continue
+        rows.append({
+            "paper_id": clean_text(c["paper_id"]),
             "chunk_index": c["chunk_index"],
-            "chunk_text": c["chunk_text"],
+            "chunk_text": text,
             "token_count": None,
             "embedding": c["embedding"],
-        }
-        for c in chunks
-    ]
+        })
+    if skipped:
+        log.info(f"skipped {skipped} empty/invalid chunks")
+
     for i in tqdm(range(0, len(rows), args.batch), desc="chunks"):
-        sb.table("chunks").upsert(
-            rows[i : i + args.batch],
-            on_conflict="paper_id,chunk_index",
-        ).execute()
+        try:
+            sb.table("chunks").upsert(
+                rows[i : i + args.batch],
+                on_conflict="paper_id,chunk_index",
+            ).execute()
+        except Exception as e:
+            log.error(f"batch {i // args.batch} failed: {e}")
+            raise
 
     log.info("DONE.")
-    log.info("Run the IVFFLAT index ANALYZE in Supabase SQL editor:")
-    log.info("  ANALYZE chunks;")
 
 
 if __name__ == "__main__":
