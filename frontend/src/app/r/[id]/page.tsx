@@ -252,8 +252,6 @@ export default function ReportPage() {
             </Link>
           </div>
           <p className="mt-8 text-[10px] font-mono text-bone-500 leading-relaxed">
-            본 보고서는 행동분석 AI(Claude Opus 4.7) + 학술 문헌 기반 RAG로 생성됨.
-            <br />
             참고용 · 법적 효력 없음 · 절대적 진실을 보장하지 않습니다.
           </p>
         </footer>

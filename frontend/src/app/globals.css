@@ -97,6 +97,26 @@ input:focus, textarea:focus { outline: none; }
   50%      { opacity: 1; transform: scale(1.15); }
 }
 
+/* Landing-page profiler portrait background.
+ * Drop your image at /public/profiler-bg.jpg (or .png/.webp).
+ * If the file is missing, the page just shows the dark gradient — no broken image.
+ */
+.profiler-bg {
+  background-image: url("/profiler-bg.jpg");
+  background-size: cover;
+  background-position: center 20%;
+  background-repeat: no-repeat;
+  filter: grayscale(0.85) contrast(1.1) brightness(0.55) sepia(0.15);
+  opacity: 0.55;
+  mix-blend-mode: luminosity;
+  animation: profiler-bg-breath 9s ease-in-out infinite;
+}
+
+@keyframes profiler-bg-breath {
+  0%, 100% { transform: scale(1.02); filter: grayscale(0.85) contrast(1.1) brightness(0.55) sepia(0.15); }
+  50%      { transform: scale(1.06); filter: grayscale(0.9) contrast(1.15) brightness(0.5) sepia(0.2); }
+}
+
 /* Intro sequence styles */
 .tv-noise {
   background-image:
