@@ -1,49 +1,46 @@
-"""Batch-embed chunks via Voyage 3."""
+"""Local embedding via sentence-transformers (multilingual-e5-large, 1024-dim).
+
+No API key needed. Runs on CPU. Model is ~1.3 GB downloaded once and cached.
+"""
 from __future__ import annotations
-import os
-import time
 import logging
-import voyageai
+from typing import Sequence
 
 log = logging.getLogger("girigo.embed")
 
-_client: voyageai.Client | None = None
+# Multilingual E5-large: 1024 dimensions (matches our pgvector schema).
+# E5 family expects "passage: " prefix for documents and "query: " for queries.
+MODEL_NAME = "intfloat/multilingual-e5-large"  # 1024-dim, matches schema
+
+_model = None
 
 
-def client() -> voyageai.Client:
-    global _client
-    if _client is None:
-        key = os.environ.get("VOYAGE_API_KEY")
-        if not key:
-            raise RuntimeError("VOYAGE_API_KEY missing")
-        _client = voyageai.Client(api_key=key)
-    return _client
+def _load():
+    global _model
+    if _model is None:
+        from sentence_transformers import SentenceTransformer  # imported lazily
+        log.info(f"loading {MODEL_NAME} (one-time download ~1.3 GB on first run)...")
+        _model = SentenceTransformer(MODEL_NAME)
+    return _model
 
 
-def embed_documents(texts: list[str], batch_size: int = 96) -> tuple[list[list[float]], int]:
-    """Embed a list of texts. Returns (vectors, total_tokens). Retries on transient errors."""
+def embed_documents(texts: Sequence[str], batch_size: int = 32) -> tuple[list[list[float]], int]:
     if not texts:
         return [], 0
-    out: list[list[float]] = []
-    total_tokens = 0
-    for i in range(0, len(texts), batch_size):
-        batch = texts[i : i + batch_size]
-        for attempt in range(4):
-            try:
-                res = client().embed(batch, model="voyage-3", input_type="document")
-                out.extend(res.embeddings)
-                total_tokens += res.total_tokens
-                break
-            except Exception as e:
-                wait = 2 ** attempt
-                log.warning(f"embed batch {i//batch_size} attempt {attempt+1} failed: {e}; wait {wait}s")
-                time.sleep(wait)
-        else:
-            raise RuntimeError(f"embed batch {i//batch_size} failed after retries")
-    return out, total_tokens
+    model = _load()
+    # E5 documents: "passage: " prefix
+    prefixed = [f"passage: {t}" for t in texts]
+    vectors = model.encode(
+        prefixed,
+        batch_size=batch_size,
+        show_progress_bar=True,
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+    )
+    return vectors.tolist(), 0  # token count irrelevant locally
 
 
 def embed_query(text: str) -> tuple[list[float], int]:
-    """Embed a single query (use input_type='query' for retrieval asymmetry)."""
-    res = client().embed([text], model="voyage-3", input_type="query")
-    return res.embeddings[0], res.total_tokens
+    model = _load()
+    vec = model.encode([f"query: {text}"], convert_to_numpy=True, normalize_embeddings=True)[0]
+    return vec.tolist(), 0

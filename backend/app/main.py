@@ -19,9 +19,12 @@ app = FastAPI(
 
 
 @app.on_event("startup")
-def _verify_env():
+def _startup():
     # Will raise on missing env vars
     settings()
+    # Pre-load embedding model so first query is fast
+    from app.services.embed import warmup
+    warmup()
 
 
 # CORS

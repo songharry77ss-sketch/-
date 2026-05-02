@@ -11,7 +11,6 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 class Settings(BaseModel):
     anthropic_api_key: str
-    voyage_api_key: str
     supabase_url: str
     supabase_service_role_key: str
     cors_origins: list[str] = [
@@ -39,7 +38,6 @@ def settings() -> Settings:
 
     return Settings(
         anthropic_api_key=req("ANTHROPIC_API_KEY"),
-        voyage_api_key=req("VOYAGE_API_KEY"),
         supabase_url=req("SUPABASE_URL"),
         supabase_service_role_key=req("SUPABASE_SERVICE_ROLE_KEY"),
     )

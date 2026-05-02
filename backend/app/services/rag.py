@@ -4,7 +4,7 @@ import logging
 from app.config import settings
 from app.models import RagChunk
 from app.services.supa import supabase
-from app.services.voyage import embed_query
+from app.services.embed import embed_query
 
 log = logging.getLogger("girigo.rag")
 

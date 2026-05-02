@@ -172,19 +172,26 @@ def chunk_all(papers: list[dict]) -> list[dict]:
     return chunks
 
 
-def embed_all(chunks: list[dict]) -> dict:
-    """Run Voyage embedding over every chunk. Save vectors + metadata to JSON."""
+def embed_all(chunks: list[dict], max_chunks: int = 0) -> dict:
+    """Run embedding over chunks. Save vectors + metadata to JSON.
+
+    max_chunks > 0 limits to first N chunks (e.g. for faster iteration).
+    """
     out_file = OUTPUT / "chunks_embedded.json"
     if out_file.exists():
         log.info(f"using cached embeddings: {out_file}")
         return json.loads(out_file.read_text(encoding="utf-8"))
 
+    if max_chunks > 0 and len(chunks) > max_chunks:
+        log.info(f"limiting to first {max_chunks} chunks (out of {len(chunks)})")
+        chunks = chunks[:max_chunks]
+
     texts = [c["chunk_text"] for c in chunks]
-    log.info(f"embedding {len(texts)} chunks via Voyage 3...")
+    log.info(f"embedding {len(texts)} chunks (local model)...")
     t0 = time.time()
     vectors, total_tokens = embed_documents(texts)
     dt = time.time() - t0
-    log.info(f"done in {dt:.1f}s · tokens used: {total_tokens:,}")
+    log.info(f"done in {dt:.1f}s")
 
     for c, v in zip(chunks, vectors):
         c["embedding"] = v
@@ -202,6 +209,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", type=int, default=200, help="Target paper count")
     ap.add_argument("--max-queries", type=int, default=0, help="0 = use all queries (debug only)")
+    ap.add_argument("--max-chunks", type=int, default=0, help="0 = embed all chunks; otherwise limit")
     ap.add_argument("--skip-embed", action="store_true")
     args = ap.parse_args()
 
@@ -223,7 +231,7 @@ def main():
         return
 
     log.info(f"=== Stage 4: embed ===")
-    payload = embed_all(chunks)
+    payload = embed_all(chunks, max_chunks=args.max_chunks)
     log.info(f"DONE. Saved {len(payload['chunks'])} embedded chunks.")
     log.info(f"Output: {OUTPUT / 'chunks_embedded.json'}")
     log.info(f"Total tokens used (Voyage): {payload['total_tokens']:,}")
