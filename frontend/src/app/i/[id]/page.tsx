@@ -11,6 +11,7 @@ import {
   speakKorean,
   type Recognizer,
 } from "@/lib/speech";
+import { getBgm } from "@/lib/bgm";
 
 type Msg = { role: "profiler" | "suspect"; content: string };
 
@@ -28,6 +29,13 @@ export default function InterrogationPage() {
   const [listening, setListening] = useState(false);
   const [verdictHint, setVerdictHint] = useState<{ confidence: number; turns: number; canFinalize: boolean } | null>(null);
   const [finalizing, setFinalizing] = useState(false);
+  const [bgm, setBgm] = useState({ playing: false, muted: false });
+  useEffect(() => {
+    const b = getBgm();
+    const unsub = b.subscribe(setBgm);
+    if (!b.state.playing && !b.state.muted) b.start();
+    return () => { unsub(); };
+  }, []);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recRef = useRef<Recognizer | null>(null);
@@ -171,6 +179,15 @@ export default function InterrogationPage() {
               </span>
             </div>
             <div className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={() => getBgm().toggleMute()}
+                title={bgm.muted ? "BGM 켜기" : "BGM 끄기"}
+                className={`px-2.5 py-1 border text-[10px] font-mono tracking-widest transition-colors ${
+                  bgm.muted ? "border-ink-500 text-bone-500 hover:border-bone-300" : "border-blood-500 text-blood-300 bg-blood-900/20"
+                }`}
+              >
+                {bgm.muted ? "♪ OFF" : "♪ ON"}
+              </button>
               {isSpeechSupported() && (
                 <button
                   onClick={toggleVoice}

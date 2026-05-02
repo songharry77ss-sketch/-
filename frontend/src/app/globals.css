@@ -97,6 +97,51 @@ input:focus, textarea:focus { outline: none; }
   50%      { opacity: 1; transform: scale(1.15); }
 }
 
+/* Intro sequence styles */
+.tv-noise {
+  background-image:
+    repeating-radial-gradient(circle at 0 0, transparent 0, rgba(255,255,255,0.5) 1px, transparent 2px),
+    repeating-radial-gradient(circle at 100% 50%, transparent 0, rgba(255,255,255,0.4) 1px, transparent 2px),
+    repeating-radial-gradient(circle at 50% 100%, transparent 0, rgba(255,255,255,0.4) 1px, transparent 2px);
+  background-size: 3px 3px, 4px 4px, 5px 5px;
+  animation: tv-noise-shift 0.08s steps(2) infinite;
+}
+@keyframes tv-noise-shift {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-2px, 1px); }
+  50% { transform: translate(1px, -2px); }
+  75% { transform: translate(-1px, 2px); }
+  100% { transform: translate(2px, 0); }
+}
+
+.bg-radial-vignette {
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 80%, rgba(0,0,0,0.95) 100%);
+}
+
+.pulse-ring {
+  animation: pulse-ring-glow 2s ease-in-out infinite;
+}
+@keyframes pulse-ring-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(184, 0, 0, 0.4), inset 0 0 10px rgba(184, 0, 0, 0.1); }
+  50% { box-shadow: 0 0 0 8px rgba(184, 0, 0, 0), inset 0 0 20px rgba(184, 0, 0, 0.25); }
+}
+
+.horiz-line {
+  opacity: 0;
+  animation: horiz-line-flicker 8.5s ease-in-out forwards;
+  box-shadow: 0 0 20px rgba(184, 0, 0, 0.6);
+  transform-origin: left;
+}
+@keyframes horiz-line-flicker {
+  0% { opacity: 0; transform: scaleX(0); }
+  8% { opacity: 0.8; transform: scaleX(1); }
+  10% { opacity: 0.2; }
+  14% { opacity: 0.9; }
+  20% { opacity: 0.5; }
+  90% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
 /* Glitch shift on hover */
 .glitch-on-hover:hover { animation: glitch-shift 0.2s ease-in-out infinite; }
 @keyframes glitch-shift {

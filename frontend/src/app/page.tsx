@@ -1,10 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import IntroSequence from "@/components/IntroSequence";
+import { getBgm } from "@/lib/bgm";
 
 export default function Landing() {
+  const [showIntro, setShowIntro] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    setShowIntro(sessionStorage.getItem("girigo:introSeen") !== "1");
+  }, []);
+
+  const onIntroDone = () => {
+    setShowIntro(false);
+    // Start ambient BGM the moment intro fades — the click satisfied autoplay policy
+    getBgm().start();
+  };
+
+  if (showIntro === null) return <div className="min-h-screen bg-black" />;
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
+      {showIntro && <IntroSequence onDone={onIntroDone} />}
+
       {/* Top status bar */}
       <div className="fixed top-0 left-0 right-0 px-6 py-3 flex justify-between text-[11px] font-mono text-bone-300 border-b border-ink-600 bg-ink-900/80 backdrop-blur z-20">
         <span><span className="text-blood-500">●</span> REC &nbsp; CH.07 &nbsp; ENCRYPTED</span>

@@ -2,8 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, type Relation } from "@/lib/api";
+import { getBgm } from "@/lib/bgm";
 
 const RELATIONS: Relation[] = ["연인", "배우자", "친구", "가족", "동료", "사제"];
 
@@ -58,6 +59,14 @@ export default function SetupPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [bgm, setBgm] = useState({ playing: false, muted: false });
+  useEffect(() => {
+    const b = getBgm();
+    const unsub = b.subscribe(setBgm);
+    if (!b.state.playing && !b.state.muted) b.start();
+    return () => { unsub(); };
+  }, []);
+
   const nameOk = name.trim().length > 0;
   const situationOk = situation.trim().length >= 10;
   const canStart = nameOk && situationOk && !submitting;
@@ -87,7 +96,20 @@ export default function SetupPage() {
           ◀ 처음으로
         </Link>
         <span className="font-mono text-[10px] text-bone-500 tracking-[0.3em]">{completed}/3 입력 완료</span>
-        <span className="font-mono text-[11px] text-blood-500">●  REC</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => getBgm().toggleMute()}
+            title={bgm.muted ? "BGM 켜기" : "BGM 끄기"}
+            className={`px-2.5 py-1 border text-[10px] font-mono tracking-widest transition-colors ${
+              bgm.muted
+                ? "border-ink-500 text-bone-500 hover:border-bone-300"
+                : "border-blood-500 text-blood-300 bg-blood-900/20"
+            }`}
+          >
+            {bgm.muted ? "♪ OFF" : "♪ ON"}
+          </button>
+          <span className="font-mono text-[11px] text-blood-500">●  REC</span>
+        </div>
       </div>
 
       <h2 className="font-serif text-3xl text-bone-100 mb-1">사건 접수</h2>

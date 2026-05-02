@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { api, type Report, type Verdict } from "@/lib/api";
+import { getBgm } from "@/lib/bgm";
 
 const VERDICT_INFO: Record<
   Verdict,
@@ -84,6 +85,11 @@ export default function ReportPage() {
   const [error, setError] = useState<string | null>(null);
   const [phase, setPhase] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
+
+  // Stop ambient BGM — verdict is in
+  useEffect(() => {
+    getBgm().stop();
+  }, []);
 
   useEffect(() => {
     const phases = [
