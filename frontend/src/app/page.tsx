@@ -9,7 +9,9 @@ export default function Landing() {
   const [showIntro, setShowIntro] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setShowIntro(sessionStorage.getItem("girigo:introSeen") !== "1");
+    // Always show the intro gate on landing — required to satisfy browser
+    // autoplay policy AND to set the dramatic tone every visit.
+    setShowIntro(true);
   }, []);
 
   const onIntroDone = () => {
