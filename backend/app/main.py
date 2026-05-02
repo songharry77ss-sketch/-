@@ -22,9 +22,8 @@ app = FastAPI(
 def _startup():
     # Will raise on missing env vars
     settings()
-    # Pre-load embedding model so first query is fast
-    from app.services.embed import warmup
-    warmup()
+    # Note: embedding model loads lazily on first query (avoids blocking startup
+    # past Railway's healthcheck window).
 
 
 # CORS
