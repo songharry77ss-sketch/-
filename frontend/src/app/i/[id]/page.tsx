@@ -220,7 +220,18 @@ export default function InterrogationPage() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
           {messages.map((m, i) => (
-            <Bubble key={i} role={m.role} content={m.content} />
+            <Bubble
+              key={i}
+              role={m.role}
+              content={m.content}
+              showChoices={i === messages.length - 1 && !streaming}
+              onPickChoice={(choice) => {
+                if (streaming) return;
+                cancelSpeech();
+                setMessages((prev) => [...prev, { role: "suspect", content: choice }]);
+                sendToProfiler(choice);
+              }}
+            />
           ))}
           {streaming && streamBuf && <Bubble role="profiler" content={streamBuf} streaming />}
           {streaming && !streamBuf && (
@@ -296,22 +307,106 @@ export default function InterrogationPage() {
   );
 }
 
-function Bubble({ role, content, streaming }: { role: "profiler" | "suspect"; content: string; streaming?: boolean }) {
+/**
+ * Detect a `[선택]` marker in profiler text and return question + choices.
+ * Format the profiler emits:
+ *   ...question text...
+ *
+ *   [선택]
+ *   - 옵션 A
+ *   - 옵션 B
+ *   - 직접 입력
+ */
+function parseChoices(text: string): { question: string; choices: string[] } | null {
+  // Match [선택] (or [선택지]) marker followed by lines starting with "-"
+  const m = text.match(/^([\s\S]*?)\n+\[\s*선택지?\s*\]\s*\n([\s\S]*)$/);
+  if (!m) return null;
+  const question = m[1].trim();
+  const block = m[2];
+  const choices: string[] = [];
+  for (const raw of block.split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    const itemMatch = line.match(/^[-•*]\s*(.+)$/);
+    if (!itemMatch) {
+      // Non-bullet line after the list — stop parsing
+      if (choices.length) break;
+      continue;
+    }
+    choices.push(itemMatch[1].trim());
+  }
+  if (choices.length < 2) return null;
+  return { question, choices };
+}
+
+function Bubble({
+  role,
+  content,
+  streaming,
+  showChoices,
+  onPickChoice,
+}: {
+  role: "profiler" | "suspect";
+  content: string;
+  streaming?: boolean;
+  showChoices?: boolean;
+  onPickChoice?: (choice: string) => void;
+}) {
   if (role === "profiler") {
+    const parsed = !streaming && showChoices ? parseChoices(content) : null;
     return (
       <div className="space-y-1">
-        <div className="font-mono text-[10px] text-blood-300 tracking-[0.3em] uppercase">▌ 프로파일러 — 김재현</div>
-        <div className={`border-l-2 border-blood-500 pl-4 py-2 text-bone-100 leading-loose font-serif text-[15px] ${streaming ? "text-flicker" : ""}`}>
-          {content}
+        <div className="font-mono text-[10px] text-blood-300 tracking-[0.3em] uppercase">
+          ▌ 프로파일러 — 김재현
+        </div>
+        <div
+          className={`border-l-2 border-blood-500 pl-4 py-2 text-bone-100 leading-loose font-serif text-[15px] ${
+            streaming ? "text-flicker" : ""
+          }`}
+        >
+          {parsed ? parsed.question : content}
           {streaming && <span className="terminal-cursor" />}
         </div>
+        {parsed && onPickChoice && (
+          <div className="ml-4 mt-2 flex flex-wrap gap-2">
+            {parsed.choices.map((c, i) => {
+              const isFreeform = /직접\s*입력|기타/.test(c);
+              return (
+                <button
+                  key={i}
+                  onClick={() => {
+                    if (isFreeform) {
+                      // Just focus the textarea; let user type
+                      document
+                        .querySelector<HTMLTextAreaElement>("textarea")
+                        ?.focus();
+                      return;
+                    }
+                    onPickChoice(c);
+                  }}
+                  className={`text-sm px-4 py-2 border transition-colors ${
+                    isFreeform
+                      ? "border-ink-500 text-bone-300 hover:border-bone-300 italic"
+                      : "border-blood-700 text-bone-100 hover:border-blood-500 hover:bg-blood-900/30"
+                  }`}
+                >
+                  {isFreeform ? "✎ " : ""}{c}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   }
   return (
     <div className="space-y-1 ml-12">
-      <div className="font-mono text-[10px] text-bone-300 tracking-[0.3em] uppercase text-right">진술자 ▐</div>
-      <div className="border-r-2 border-ink-500 pr-4 py-2 text-bone-300 text-right leading-relaxed text-[14px]">{content}</div>
+      <div className="font-mono text-[10px] text-bone-300 tracking-[0.3em] uppercase text-right">
+        진술자 ▐
+      </div>
+      <div className="border-r-2 border-ink-500 pr-4 py-2 text-bone-300 text-right leading-relaxed text-[14px]">
+        {content}
+      </div>
     </div>
   );
 }
